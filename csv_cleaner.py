@@ -2,6 +2,16 @@ import argparse
 import csv
 import sys
 from pathlib import Path
+import time
+
+def log_execution(func):
+    def wrapper(*args,**kwargs):
+        start = time.time()
+        result = func(*args,**kwargs)
+        end = time.time()
+        print(f"took {end - start} seconds")
+        return result
+    return wrapper
 
 class DataCleaner:
     
@@ -13,6 +23,7 @@ class DataCleaner:
         self.count = 0
         self.data = []
 
+    @log_execution
     def load(self) -> None:
         try:
             with open(self.input) as file:
@@ -26,7 +37,8 @@ class DataCleaner:
         except UnicodeDecodeError:
             print("incorect file type")
             sys.exit(1)
-    
+
+    @log_execution   
     def report(self) -> None:
         if not self.data:
             print("initialise load first")
@@ -36,6 +48,7 @@ class DataCleaner:
         print(f"row count is {self.count}")
         print(f"file size is {Path(self.input).stat().st_size}")
 
+    @log_execution
     def save(self) -> None:
         if not self.data:
             print("initialise load first")
