@@ -3,6 +3,8 @@ import csv
 import sys
 from pathlib import Path
 import time
+from collections import Counter
+import statistics
 
 def log_execution(func):
     def wrapper(*args,**kwargs):
@@ -20,6 +22,7 @@ class DataCleaner:
         self.output = args.output
         self.fill_method = args.fill_method
         self.drop_duplicates = args.drop_duplicates
+        self.stat = args.stats 
         self.count = 0
         self.data = []
 
@@ -58,12 +61,38 @@ class DataCleaner:
             writer.writeheader()
             writer.writerows(self.data)
 
+    @log_execution
+    def stats(self) -> None:
+        if self.stat:
+            for col in self.data[0].keys():
+                values = [row[col] for row in self.data]
+                try:
+                    num_values = [float(value) for value in values]
+                    print(f"mean is {statistics.mean(num_values)}")
+                    print(f" stdev is {statistics.stdev(num_values)}")
+                except ValueError:
+                    print(Counter(values))
+
+                    
+
+class DataValidator(DataCleaner):
+    @log_execution
+    def validate(self) -> None:
+        for col in self.data[0].keys():
+            if not col.isidentifier():
+                print(f"warning {col} is not valid")
+            if all([row[col] == '' for row in self.data]):
+                print(f"warning {col} is empty")
+                
+
 def main() -> None:
     args = user_input()
-    cleaner = DataCleaner(args)
-    cleaner.load()
-    cleaner.report()
-    cleaner.save()
+    validator = DataValidator(args)
+    validator.load()
+    validator.validate()
+    validator.report()
+    validator.save()
+    validator.stats()
 
 def user_input() -> argparse.Namespace:
     parser =argparse.ArgumentParser()
@@ -71,6 +100,7 @@ def user_input() -> argparse.Namespace:
     parser.add_argument("--output", help="add your output path", required=True)
     parser.add_argument("--fill-method", help="add what to fill in blanks", choices=["mean", "median", "mode", "drop"], default="median")
     parser.add_argument("--drop-duplicates", help="add if true", action='store_true')
+    parser.add_argument("--stats", help="add if stats analysis is needed", action='store_true')
     args = parser.parse_args()
     return args
 
